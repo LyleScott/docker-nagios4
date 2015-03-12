@@ -4,7 +4,7 @@ This is a docker image that will give you a naked Ubuntu 14.04 image with
 Nagios4 (and apache2) installed.
 
 It allows you to configure how Apache and Nagios are installed using ENV
-variabled.
+variables.
 
 ## Config Options
 
@@ -32,4 +32,21 @@ ENV APACHE_RUN_DIR /var/run/apache2
 ENV APACHE_LOCK_DIR /var/lock/apache2
 ENV APACHE_SERVERNAME localhost
 ENV APACHE_SERVERALIAS docker.localhost
+```
+
+## Quick Start
+```bash
+docker build -t lylescott/nagios .
+docker run -i -t -p 9443:443 lylescott/nagios
+```
+
+Visit http://dockerip:9443 (and accept the self-signed cert)
+
+# Customize Your Image
+THIS DOESNT WORK YET. This image will be in the docker repos soon, though.
+
+```bash
+FROM lylescott/nagios
+
+<your customiziations here>
 ```
