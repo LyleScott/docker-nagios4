@@ -42,7 +42,7 @@ docker run -i -t -p 9443:443 lylescott/nagios
 
 Visit http://dockerip:9443 (and accept the self-signed cert)
 
-# Customize Your Image
+## Customize Your Image
 THIS DOESNT WORK YET. This image will be in the docker repos soon, though.
 
 ```bash
