@@ -112,7 +112,7 @@ RUN mkdir -p /etc/apache2/ssl &&\
 RUN mkdir -p ${NAGIOS_WEB_DIR}
 RUN chown www-data:www-data ${NAGIOS_WEB_DIR}
 # Link in the favicon for the Nagios site.
-RUN ln -s ${WORK_DIR}/nagios4/nagios-4.0.8/contrib/exfoliation/images/favicon.ico ${NAGIOS_WEB_DIR}/favicon.ico
+#RUN ln -s ${WORK_DIR}/nagios4/nagios-4.0.8/contrib/exfoliation/images/favicon.ico ${NAGIOS_WEB_DIR}/favicon.ico
 # Enable CGI module.
 RUN a2enmod cgi
 # Disable default apache site.
@@ -125,5 +125,4 @@ RUN /etc/init.d/apache2 stop
 EXPOSE 443
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-#CMD /usr/sbin/apache2 && exec ${NAGIOS_HOME}/bin/nagios ${NAGIOS_HOME}/etc/nagios.cfg
-CMD ["/usr/bin/supervisord"]
+CMD ["su", "-c", "/usr/bin/supervisord ; tail -F /var/log/apache2/error.log /opt/nagios/var/nagios.log"]
