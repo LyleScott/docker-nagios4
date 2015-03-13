@@ -122,7 +122,11 @@ ADD vhost.conf /etc/apache2/sites-available/nagios.conf
 RUN a2ensite nagios
 RUN /etc/init.d/apache2 stop
 
+RUN sed -i 's|\(^ErrorLog \).*|\1/dev/stdout|' /etc/apache2/apache2.conf
+#RUN sed -i 's|\(^LogLevel \).*|\1info|' /etc/apache2/apache2.conf
+
 EXPOSE 443
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-CMD ["su", "-c", "/usr/bin/supervisord ; tail -F /var/log/apache2/error.log /opt/nagios/var/nagios.log"]
+CMD ["/usr/bin/supervisord"]
+                                                                            
