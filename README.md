@@ -36,8 +36,14 @@ ENV APACHE_SERVERALIAS docker.localhost
 
 ## Quick Start
 
+```bash
+docker pull lylescott/nagios4
+docker run -i -t -p 9443:443 lylescott/nagios
+```
 
-### Dockerfile
+Then, visit http://dockerip:9443 (and accept the self-signed cert)
+
+### Customize with a Dockerfile
 ```bash
 FROM lylescott/nagios4
 MAINTAINER Your Name <your@email.com>
@@ -55,8 +61,9 @@ files can be nested any directory stucture.
 
 #### Example cfg
 
-cfg/www.example.com.cfg
+In the file cfg/www.example.com.cfg
 
+```
 define host {
     # inherited from lylescott/nagios4
     use                             linux-box
@@ -72,11 +79,6 @@ define service {
     service_description             Host Alive
     check_command                   check-host-alive
 }
-
-### Or use the image directly (for evaluation, I guess?)
-```bash
-docker pull lylescott/nagios4
-docker run -i -t -p 9443:443 lylescott/nagios
 ```
 
-Visit http://dockerip:9443 (and accept the self-signed cert)
+
