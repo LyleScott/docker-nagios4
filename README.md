@@ -8,7 +8,7 @@ variables.
 
 ## Config Options
 
-```docker
+```bash
 ENV NAGIOS_VERSION 4.0.8
 ENV NAGIOS_PLUGINS_VERSION 2.0.3
 ENV NAGIOS_NRPE_VERSION 2.15
