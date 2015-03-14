@@ -43,7 +43,6 @@ RUN apt-get update
 RUN apt-get install -q -y apache2 supervisor libapache2-mod-php5 build-essential libgd2-xpm-dev libssl-dev wget apache2-utils libnet-snmp-perl libpq5 libradius1 libsensors4 libsnmp-base libtalloc2 libtdb1 libwbclient0 samba-common samba-common-bin smbclient snmp whois mrtg libmysqlclient15-dev libcgi-pm-perl librrds-perl libgd-gd2-perl checkinstall
 RUN /etc/init.d/apache2 stop
 
-
 #>> Copy over the supervisord config.
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
@@ -78,7 +77,6 @@ RUN mkdir ${NAGIOS_HOME}/etc/docker
 COPY cfg ${NAGIOS_HOME}/etc/docker/
 RUN echo "cfg_dir=/opt/nagios/etc/docker" >> /opt/nagios/etc/nagios.cfg
 RUN sed -i "s|\(^        email                           \).*|\1$NAGIOS_ADMIN_EMAIL|" ${NAGIOS_HOME}/etc/objects/contacts.cfg
-
 
 #>> Install Nagios Plugins
 RUN mkdir -p ${WORK_DIR}/nagios-plugins &&\
