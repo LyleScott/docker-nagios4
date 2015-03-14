@@ -69,8 +69,6 @@ RUN mkdir -p ${WORK_DIR}/nagios4 &&\
     make install && make install-config && make install-commandmode &&\
     /usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/conf-available/nagios.conf &&\
     ln -s /etc/apache2/conf-available/nagios.conf /etc/apache2/conf-enabled/nagios.conf
-    #checkinstall --default --install=no --pkgname=nagios-exfoliation make install-exfoliation &&\
-    #dpkg --force-overwrite -i nagios-exfoliation_*_amd64.deb 
 # Copy over custom config files (any file ending with .cfg will be picked up,
 # including any nested files with the same pattern.)
 RUN mkdir ${NAGIOS_HOME}/etc/docker
@@ -122,8 +120,6 @@ RUN mkdir -p /etc/apache2/ssl &&\
 # Create a place for the Nagios HTTP docs to live.
 RUN mkdir -p ${NAGIOS_WEB_DIR}
 RUN chown www-data:www-data ${NAGIOS_WEB_DIR}
-# Link in the favicon for the Nagios site.
-#RUN ln -s ${WORK_DIR}/nagios4/nagios-4.0.8/contrib/exfoliation/images/favicon.ico ${NAGIOS_WEB_DIR}/favicon.ico
 # Enable CGI module.
 RUN a2enmod cgi
 # Disable default apache site.
