@@ -35,18 +35,48 @@ ENV APACHE_SERVERALIAS docker.localhost
 ```
 
 ## Quick Start
+
+
+### Dockerfile
 ```bash
-docker build -t lylescott/nagios .
+FROM lylescott/nagios4
+MAINTAINER Your Name <your@email.com>
+
+USER root
+
+RUN echo > ${NAGIOS_HOME}/etc/docker/www.example.com.cfg
+
+COPY cfg/* ${NAGIOS_HOME}/etc/docker/
+```
+
+The "cfg" directory should contain all your custom Nagios config files. The
+file extension should be .cfg to be automatically picked up by Nagios. The
+files can be nested any directory stucture.
+
+#### Example cfg
+
+cfg/www.example.com.cfg
+
+define host {
+    # inherited from lylescott/nagios4
+    use                             linux-box
+    host_name                       www.example.com
+    alias                           www.example.com
+    address                         12.34.56.78
+}
+
+define service {
+    # inherited from lylescott/nagios4
+    use                             generic-service
+    host_name                       www.example.com
+    service_description             Host Alive
+    check_command                   check-host-alive
+}
+
+### Or use the image directly (for evaluation, I guess?)
+```bash
+docker pull lylescott/nagios4
 docker run -i -t -p 9443:443 lylescott/nagios
 ```
 
 Visit http://dockerip:9443 (and accept the self-signed cert)
-
-## Customize Your Image
-THIS DOESNT WORK YET. This image will be in the docker repos soon, though.
-
-```bash
-FROM lylescott/nagios
-
-<your customiziations here>
-```
