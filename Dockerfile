@@ -6,8 +6,8 @@ MAINTAINER Lyle Scott, III "lyle@digitalfoo.net"
 # https://github.com/cpuguy83/docker-nagios
 
 ENV NAGIOS_VERSION 4.0.8
-ENV NAGIOS_PLUGINS_VERSION 2.0.3
-ENV NAGIOS_NRPE_VERSION 2.15
+ENV NAGIOSPLUGINS_VERSION 2.0.3
+ENV NRPE_VERSION 2.15
 
 ENV WORK_DIR /tmp
 
@@ -19,6 +19,7 @@ ENV NAGIOSADMIN_USER nagiosadmin
 ENV NAGIOSADMIN_PASS nagios
 ENV NAGIOS_TIMEZONE US/Eastern
 ENV NAGIOS_WEB_DIR $NAGIOS_HOME/share
+ENV NAGIOS_ADMIN_EMAIL foo@bar.com
 
 ENV APACHE_RUN_USER nagios
 ENV APACHE_RUN_GROUP nagios
@@ -40,6 +41,11 @@ RUN echo "America/New_York" > /etc/timezone && \
 #>> Gather all the needed packages.
 RUN apt-get update
 RUN apt-get install -q -y apache2 supervisor libapache2-mod-php5 build-essential libgd2-xpm-dev libssl-dev wget apache2-utils libnet-snmp-perl libpq5 libradius1 libsensors4 libsnmp-base libtalloc2 libtdb1 libwbclient0 samba-common samba-common-bin smbclient snmp whois mrtg libmysqlclient15-dev libcgi-pm-perl librrds-perl libgd-gd2-perl checkinstall
+RUN /etc/init.d/apache2 stop
+
+
+#>> Copy over the supervisord config.
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 #>> Add users and such.
 RUN groupadd -g 3000 ${NAGIOS_GROUP}
@@ -66,13 +72,20 @@ RUN mkdir -p ${WORK_DIR}/nagios4 &&\
     ln -s /etc/apache2/conf-available/nagios.conf /etc/apache2/conf-enabled/nagios.conf
     #checkinstall --default --install=no --pkgname=nagios-exfoliation make install-exfoliation &&\
     #dpkg --force-overwrite -i nagios-exfoliation_*_amd64.deb 
+# Copy over custom config files (any file ending with .cfg will be picked up,
+# including any nested files with the same pattern.)
+RUN mkdir ${NAGIOS_HOME}/etc/docker
+COPY cfg ${NAGIOS_HOME}/etc/docker/
+RUN echo "cfg_dir=/opt/nagios/etc/docker" >> /opt/nagios/etc/nagios.cfg
+RUN sed -i "s|\(^        email                           \).*|\1$NAGIOS_ADMIN_EMAIL|" ${NAGIOS_HOME}/etc/objects/contacts.cfg
+
 
 #>> Install Nagios Plugins
 RUN mkdir -p ${WORK_DIR}/nagios-plugins &&\
     cd ${WORK_DIR}/nagios-plugins &&\
-    wget https://www.nagios-plugins.org/download/nagios-plugins-${NAGIOS_PLUGINS_VERSION}.tar.gz &&\
-    tar -xf nagios-plugins-${NAGIOS_PLUGINS_VERSION}.tar.gz &&\
-    cd nagios-plugins-${NAGIOS_PLUGINS_VERSION} &&\
+    wget https://www.nagios-plugins.org/download/nagios-plugins-${NAGIOSPLUGINS_VERSION}.tar.gz &&\
+    tar -xf nagios-plugins-${NAGIOSPLUGINS_VERSION}.tar.gz &&\
+    cd nagios-plugins-${NAGIOSPLUGINS_VERSION} &&\
     ./configure \
         --prefix=${NAGIOS_HOME} \
         --with-nagios-user=${NAGIOS_USER} \
@@ -86,9 +99,9 @@ RUN mkdir -p ${WORK_DIR}/nagios-plugins &&\
 #>> Install NRPE
 RUN mkdir -p ${WORK_DIR}/nrpe &&\
     cd ${WORK_DIR}/nrpe &&\
-    wget http://kent.dl.sourceforge.net/project/nagios/nrpe-2.x/nrpe-${NAGIOS_NRPE_VERSION}/nrpe-${NAGIOS_NRPE_VERSION}.tar.gz &&\
-    tar -xf nrpe-${NAGIOS_NRPE_VERSION}.tar.gz &&\
-    cd nrpe-${NAGIOS_NRPE_VERSION} &&\
+    wget http://kent.dl.sourceforge.net/project/nagios/nrpe-2.x/nrpe-${NRPE_VERSION}/nrpe-${NRPE_VERSION}.tar.gz &&\
+    tar -xf nrpe-${NRPE_VERSION}.tar.gz &&\
+    cd nrpe-${NRPE_VERSION} &&\
     ./configure \
         --prefix=${NAGIOS_HOME} \
         --with-ssl=/usr/bin/openssl \
@@ -120,13 +133,13 @@ RUN a2dissite 000-default
 # Enable the Nagios virtual host we copied over.
 ADD vhost.conf /etc/apache2/sites-available/nagios.conf
 RUN a2ensite nagios
-RUN /etc/init.d/apache2 stop
 
 RUN sed -i 's|\(^ErrorLog \).*|\1/dev/stdout|' /etc/apache2/apache2.conf
 #RUN sed -i 's|\(^LogLevel \).*|\1info|' /etc/apache2/apache2.conf
 
+#>> Cleanup
+RUN rm -rf /tmp/* /var/lib/apt/lists/*
+
 EXPOSE 443
 
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 CMD ["/usr/bin/supervisord"]
-                                                                            
