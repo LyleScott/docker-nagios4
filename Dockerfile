@@ -19,8 +19,11 @@ ENV NAGIOSADMIN_USER nagiosadmin
 ENV NAGIOSADMIN_PASS nagios
 ENV NAGIOS_TIMEZONE US/Eastern
 ENV NAGIOS_WEB_DIR $NAGIOS_HOME/share
-ENV NAGIOS_ADMIN_EMAIL foo@bar.com
+ENV NAGIOS_ADMIN_EMAIL admin@example.com
 
+ENV APACHE_VHOST_SERVERNAME www.path.to.nagios.com
+ENV APACHE_VHOST_SERVERADMIN admin@example.com
+ENV APACHE_VHOST_PORT 443
 ENV APACHE_RUN_USER nagios
 ENV APACHE_RUN_GROUP nagios
 ENV APACHE_LOG_DIR /var/log/apache2
@@ -29,6 +32,8 @@ ENV APACHE_RUN_DIR /var/run/apache2
 ENV APACHE_LOCK_DIR /var/lock/apache2
 ENV APACHE_SERVERNAME localhost
 ENV APACHE_SERVERALIAS docker.localhost
+ENV APACHE_ERROR_LOG /dev/stdout
+ENV APACHE_LOG_LEVEL error 
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -106,6 +111,8 @@ RUN mkdir -p ${WORK_DIR}/nrpe &&\
     make install
 
 #>> Install and Configure Apache
+RUN sed -i "s|\(^ErrorLog \).*|\1${APACHE_ERROR_LOG}|" /etc/apache2/apache2.conf &&\
+    sed -i "s|\(^LogLevel \).*|\1${APACHE_LOG_LEVEL}|" /etc/apache2/apache2.conf
 # Generate a password to use with authentication via Apache. 
 RUN htpasswd -b -c ${NAGIOS_HOME}/etc/htpasswd.users ${NAGIOSADMIN_USER} ${NAGIOSADMIN_PASS}
 RUN chown ${NAGIOS_USER}:${NAGIOS_CMDGROUP} ${NAGIOS_HOME}/etc/htpasswd.users
@@ -125,11 +132,17 @@ RUN a2enmod cgi
 # Disable default apache site.
 RUN a2dissite 000-default
 # Enable the Nagios virtual host we copied over.
-ADD vhost.conf /etc/apache2/sites-available/nagios.conf
+ADD vhost.conf /etc/apache2/sites-available/nagios.conf &&\
+    sed -i \
+        "s/%%APACHE_VHOST_SERVERNAME%%/${APACHE_VHOST_SERVERNAME}" \
+        /etc/apache2/sites-available/nagios.conf &&\
+    sed -i \
+        "s/%%APACHE_VHOST_SERVERADMIN%%/${APACHE_VHOST_SERVERADMIN}" \
+        /etc/apache2/sites-available/nagios.conf &&\
+    sed -i \
+        "s/%%APACHE_VHOST_PORT%%/${APACHE_VHOST_PORT}" \
+        /etc/apache2/sites-available/nagios.conf
 RUN a2ensite nagios
-
-RUN sed -i 's|\(^ErrorLog \).*|\1/dev/stdout|' /etc/apache2/apache2.conf
-#RUN sed -i 's|\(^LogLevel \).*|\1info|' /etc/apache2/apache2.conf
 
 #>> Cleanup
 RUN rm -rf /tmp/* /var/lib/apt/lists/*
