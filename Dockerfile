@@ -10,6 +10,7 @@ ENV NAGIOSPLUGINS_VERSION 2.0.3
 ENV NRPE_VERSION 2.15
 
 ENV WORK_DIR /tmp
+ENV SYSTEM_TIMEZONE America/New_York
 
 ENV NAGIOS_HOME /opt/nagios
 ENV NAGIOS_USER nagios
@@ -40,7 +41,7 @@ ENV DEBIAN_FRONTEND noninteractive
 USER root
 
 #>> Set system timezone
-RUN echo "America/New_York" > /etc/timezone && \
+RUN echo ${SYSTEM_TIMEZONE} > /etc/timezone &&\
     dpkg-reconfigure -f noninteractive tzdata
 
 #>> Gather all the needed packages.
