@@ -146,7 +146,9 @@ ADD vhost.conf /etc/apache2/sites-available/nagios.conf &&\
 RUN a2ensite nagios
 
 #>> Cleanup
-RUN rm -rf /tmp/* /var/lib/apt/lists/*
+RUN apt-get autoclean -y &&\
+    apt-get autoremove -y &&\
+    apt-get rm -rf /tmp/* /var/lib/apt/lists/*
 
 EXPOSE 443
 
