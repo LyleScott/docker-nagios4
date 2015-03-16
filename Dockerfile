@@ -165,4 +165,4 @@ RUN apt-get autoclean -y &&\
 
 EXPOSE 443
 
-ENTRYPOINT ["/usr/bin/supervisord"]
+CMD ["/usr/bin/supervisord"]
