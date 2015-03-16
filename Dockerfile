@@ -5,38 +5,45 @@ MAINTAINER Lyle Scott, III "lyle@digitalfoo.net"
 # https://raymii.org/s/tutorials/Nagios_Core_4_Installation_on_Ubuntu_12.04.html
 # https://github.com/cpuguy83/docker-nagios
 
-ENV NAGIOS_VERSION 4.0.8
-ENV NAGIOSPLUGINS_VERSION 2.0.3
-ENV NRPE_VERSION 2.15
+ENV NAGIOS_VERSION                  4.0.8
+ENV NAGIOSPLUGINS_VERSION           2.0.3
+ENV NRPE_VERSION                    2.15
 
-ENV WORK_DIR /tmp
-ENV SYSTEM_TIMEZONE America/New_York
+ENV WORK_DIR                        /tmp
+ENV SYSTEM_TIMEZONE                 America/New_York
 
-ENV NAGIOS_HOME /opt/nagios
-ENV NAGIOS_USER nagios
-ENV NAGIOS_GROUP nagios
-ENV NAGIOS_CMDGROUP nagioscmd
-ENV NAGIOSADMIN_USER nagiosadmin
-ENV NAGIOSADMIN_PASS nagios
-ENV NAGIOS_TIMEZONE US/Eastern
-ENV NAGIOS_WEB_DIR $NAGIOS_HOME/share
-ENV NAGIOS_ADMIN_EMAIL admin@example.com
+ENV NAGIOS_HOME                     /opt/nagios
+ENV NAGIOS_USER                     nagios
+ENV NAGIOS_GROUP                    nagios
+ENV NAGIOS_CMDGROUP                 nagioscmd
+ENV NAGIOSADMIN_USER                nagiosadmin
+ENV NAGIOSADMIN_PASS                nagios
+ENV NAGIOS_TIMEZONE                 US/Eastern
+ENV NAGIOS_WEB_DIR                  $NAGIOS_HOME/share
+ENV NAGIOS_ADMIN_EMAIL              admin@example.com
 
-ENV APACHE_VHOST_SERVERNAME www.path.to.nagios.com
-ENV APACHE_VHOST_SERVERADMIN admin@example.com
-ENV APACHE_VHOST_PORT 443
-ENV APACHE_RUN_USER nagios
-ENV APACHE_RUN_GROUP nagios
-ENV APACHE_LOG_DIR /var/log/apache2
-ENV APACHE_PID_FILE /var/run/apache2.pid
-ENV APACHE_RUN_DIR /var/run/apache2
-ENV APACHE_LOCK_DIR /var/lock/apache2
-ENV APACHE_SERVERNAME localhost
-ENV APACHE_SERVERALIAS docker.localhost
-ENV APACHE_ERROR_LOG /dev/stdout
-ENV APACHE_LOG_LEVEL error 
+ENV APACHE_VHOST_SERVERNAME         www.path.to.nagios.com
+ENV APACHE_VHOST_SERVERADMIN        admin@example.com
+ENV APACHE_VHOST_PORT               443
+ENV APACHE_RUN_USER                 nagios
+ENV APACHE_RUN_GROUP                nagios
+ENV APACHE_LOG_DIR                  /var/log/apache2
+ENV APACHE_PID_FILE                 /var/run/apache2.pid
+ENV APACHE_RUN_DIR                  /var/run/apache2
+ENV APACHE_LOCK_DIR                 /var/lock/apache2
+ENV APACHE_SERVERNAME               localhost
+ENV APACHE_SERVERALIAS              docker.localhost
+ENV APACHE_ERROR_LOG                /dev/stdout
+ENV APACHE_LOG_LEVEL                error 
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV NAGIOS_SSLCERT_COUNTRY          US
+ENV NAGIOS_SSLCERT_STATE            mystate
+ENV NAGIOS_SSLCERT_LOCATION         mylocation
+ENV NAGIOS_SSLCERT_ORGANIZATION     myorganization
+ENV NAGIOS_SSLCERT_CNAME            ${APACHE_VHOST_SERVERNAME}
+
+ENV UBUNTU_APTGET_MIRROR            mirror://mirrors.ubuntu.com/mirrors.txt
+ENV DEBIAN_FRONTEND                 noninteractive
 
 USER root
 
@@ -44,13 +51,10 @@ USER root
 RUN echo ${SYSTEM_TIMEZONE} > /etc/timezone &&\
     dpkg-reconfigure -f noninteractive tzdata
 
-#>> Gather all the needed packages.
-RUN apt-get update
-RUN apt-get install -q -y apache2 supervisor libapache2-mod-php5 build-essential libgd2-xpm-dev libssl-dev wget apache2-utils libnet-snmp-perl libpq5 libradius1 libsensors4 libsnmp-base libtalloc2 libtdb1 libwbclient0 samba-common samba-common-bin smbclient snmp whois mrtg libmysqlclient15-dev libcgi-pm-perl librrds-perl libgd-gd2-perl checkinstall
-RUN /etc/init.d/apache2 stop
-
-#>> Copy over the supervisord config.
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+#>> Install dependency packages.
+RUN sed -i "s|http://archive.ubuntu.com/ubuntu/|${UBUNTU_APTGET_MIRROR}|" /etc/apt/sources.list &&\
+    apt-get update &&\
+    apt-get install -q -y apache2 supervisor libapache2-mod-php5 build-essential libgd2-xpm-dev libssl-dev wget apache2-utils libnet-snmp-perl libpq5 libradius1 libsensors4 libsnmp-base libtalloc2 libtdb1 libwbclient0 samba-common samba-common-bin smbclient snmp whois mrtg libmysqlclient15-dev libcgi-pm-perl librrds-perl libgd-gd2-perl
 
 #>> Add users and such.
 RUN groupadd -g 3000 ${NAGIOS_GROUP}
@@ -124,7 +128,7 @@ RUN mkdir -p /etc/apache2/ssl &&\
     cd /etc/apache2/ssl &&\
     openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
         -out nagios.pem -keyout nagios.key \
-        -subj "/C=US/ST=Florida/L=St Petersburg/O=LS3/CN=my.domain.com" 
+        -subj "/C=${NAGIOS_SSLCERT_COUNTRY}/ST=${NAGIOS_SSLCERT_STATE}/L=${NAGIOS_SSLCERT_LOCATION}/O=${NAGIOS_SSLCERT_ORGANIZATION}/CN=${NAGIOS_SSLCERT_CNAME}" 
 # Create a place for the Nagios HTTP docs to live.
 RUN mkdir -p ${NAGIOS_WEB_DIR}
 RUN chown www-data:www-data ${NAGIOS_WEB_DIR}
@@ -133,22 +137,25 @@ RUN a2enmod cgi
 # Disable default apache site.
 RUN a2dissite 000-default
 # Enable the Nagios virtual host we copied over.
-ADD vhost.conf /etc/apache2/sites-available/nagios.conf &&\
-    sed -i \
-        "s/%%APACHE_VHOST_SERVERNAME%%/${APACHE_VHOST_SERVERNAME}" \
+ADD vhost.conf /etc/apache2/sites-available/nagios.conf
+RUN sed -i \
+        "s|%%APACHE_VHOST_SERVERNAME%%|${APACHE_VHOST_SERVERNAME}|" \
         /etc/apache2/sites-available/nagios.conf &&\
     sed -i \
-        "s/%%APACHE_VHOST_SERVERADMIN%%/${APACHE_VHOST_SERVERADMIN}" \
+        "s|%%APACHE_VHOST_SERVERADMIN%%|${APACHE_VHOST_SERVERADMIN}|" \
         /etc/apache2/sites-available/nagios.conf &&\
     sed -i \
-        "s/%%APACHE_VHOST_PORT%%/${APACHE_VHOST_PORT}" \
+        "s|%%APACHE_VHOST_PORT%%|${APACHE_VHOST_PORT}|" \
         /etc/apache2/sites-available/nagios.conf
 RUN a2ensite nagios
+
+#>> Copy over the supervisord config.
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 #>> Cleanup
 RUN apt-get autoclean -y &&\
     apt-get autoremove -y &&\
-    apt-get rm -rf /tmp/* /var/lib/apt/lists/*
+    rm -rf /tmp/* /var/lib/apt/lists/*
 
 EXPOSE 443
 
