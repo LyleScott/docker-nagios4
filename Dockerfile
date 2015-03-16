@@ -22,9 +22,6 @@ ENV NAGIOS_TIMEZONE                 US/Eastern
 ENV NAGIOS_WEB_DIR                  $NAGIOS_HOME/share
 ENV NAGIOS_ADMIN_EMAIL              admin@example.com
 
-ENV APACHE_VHOST_SERVERNAME         www.path.to.nagios.com
-ENV APACHE_VHOST_SERVERADMIN        admin@example.com
-ENV APACHE_VHOST_PORT               443
 ENV APACHE_RUN_USER                 nagios
 ENV APACHE_RUN_GROUP                nagios
 ENV APACHE_LOG_DIR                  /var/log/apache2
@@ -35,6 +32,12 @@ ENV APACHE_SERVERNAME               localhost
 ENV APACHE_SERVERALIAS              docker.localhost
 ENV APACHE_ERROR_LOG                /dev/stdout
 ENV APACHE_LOG_LEVEL                error 
+
+ENV APACHE_VHOST_SERVERNAME         www.path.to.nagios.com
+ENV APACHE_VHOST_SERVERADMIN        admin@example.com
+ENV APACHE_VHOST_PORT               443
+# USESSL can be On or Off
+ENV APACHE_VHOST_USESSL             On
 
 ENV NAGIOS_SSLCERT_COUNTRY          US
 ENV NAGIOS_SSLCERT_STATE            mystate
@@ -146,6 +149,9 @@ RUN sed -i \
         /etc/apache2/sites-available/nagios.conf &&\
     sed -i \
         "s|%%APACHE_VHOST_PORT%%|${APACHE_VHOST_PORT}|" \
+        /etc/apache2/sites-available/nagios.conf
+    sed -i \
+        "s|%%APACHE_VHOST_USESSL%%|${APACHE_VHOST_USESSL}|" \
         /etc/apache2/sites-available/nagios.conf
 RUN a2ensite nagios
 
