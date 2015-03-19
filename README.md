@@ -74,26 +74,42 @@ The "cfg" directory should contain all your custom Nagios config files. The
 file extension should be .cfg to be automatically picked up by Nagios. The
 files can be nested any directory stucture.
 
-#### Example cfg
+#### Example Nagios cfg File
 
-In the file cfg/www.example.com.cfg
+In the file cfg/google.com.cfg.example 
 
 ```
 define host {
-    # inherited from lylescott/nagios4
+    name                            linux-box
+    use                             generic-host
+    check_period                    24x7
+    check_interval                  5
+    retry_interval                  1
+    max_check_attempts              10
+    notification_period             24x7
+    register                        0
+    contacts                        nagiosadmin
+}
+
+define host {
     use                             linux-box
-    host_name                       www.example.com
-    alias                           www.example.com
-    address                         12.34.56.78
+    host_name                       google.com
+    alias                           google.com
+    address                         216.58.219.142
 }
 
 define service {
-    # inherited from lylescott/nagios4
     use                             generic-service
-    host_name                       www.example.com
+    host_name                       google.com
     service_description             Host Alive
     check_command                   check-host-alive
 }
-```
 
+define service {
+    use                             generic-service
+    host_name                       google.com
+    service_description             HTTP
+    check_command                   check_http
+}
+```
 
