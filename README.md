@@ -1,7 +1,7 @@
 # docker-nagios4
 
-This is a docker image that will give you a naked Ubuntu 14.04 image with
-Nagios4 (and apache2) installed.
+This docker image will give you an Ubuntu 14.04 image with Nagios4
+(and apache2) installed.
 
 It allows you to configure how Apache and Nagios are installed using ENV
 variables.
@@ -53,7 +53,7 @@ ENV UBUNTU_APTGET_MIRROR            mirror://mirrors.ubuntu.com/mirrors.txt
 
 ```bash
 docker pull lylescott/nagios4
-docker run -i -t -p 9443:443 lylescott/nagios
+docker run -i -t -p 9443:443 lylescott/nagios4
 ```
 
 Then, visit http://dockerip:9443 (and accept the self-signed cert)
@@ -65,14 +65,13 @@ MAINTAINER Your Name <your@email.com>
 
 USER root
 
-RUN echo > ${NAGIOS_HOME}/etc/docker/www.example.com.cfg
-
+# Copy over your Nagios4 configs.
 COPY cfg/* ${NAGIOS_HOME}/etc/docker/
 ```
 
-The "cfg" directory should contain all your custom Nagios config files. The
-file extension should be .cfg to be automatically picked up by Nagios. The
-files can be nested in any directory stucture.
+The "cfg" directory should contain all your custom Nagios config files. Any
+filename ending in .cfg will be automatically picked up by Nagios. The files
+can be nested in any directory stucture.
 
 #### Example Nagios cfg File
 
@@ -84,6 +83,7 @@ I included a super simple example (without custom commands)... read up on
 Nagios4 documentation for full details on how to creating fancy config files.
 
 ```
+# Host Template
 define host {
     name                            linux-box
     use                             generic-host
@@ -96,6 +96,7 @@ define host {
     contacts                        nagiosadmin
 }
 
+# Hosts
 define host {
     use                             linux-box
     host_name                       google.com
@@ -103,13 +104,13 @@ define host {
     address                         216.58.219.142
 }
 
+#Services
 define service {
     use                             generic-service
     host_name                       google.com
     service_description             Host Alive
     check_command                   check-host-alive
 }
-
 define service {
     use                             generic-service
     host_name                       google.com
