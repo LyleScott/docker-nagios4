@@ -72,11 +72,16 @@ COPY cfg/* ${NAGIOS_HOME}/etc/docker/
 
 The "cfg" directory should contain all your custom Nagios config files. The
 file extension should be .cfg to be automatically picked up by Nagios. The
-files can be nested any directory stucture.
+files can be nested in any directory stucture.
 
 #### Example Nagios cfg File
 
-In the file cfg/google.com.cfg.example 
+In reality, you would probably want your template, service, host, etc configs
+all split out into their own files or nested in an organized directory
+structure.
+
+I included a super simple example (without custom commands)... read up on
+Nagios4 documentation for full details on how to creating fancy config files.
 
 ```
 define host {
