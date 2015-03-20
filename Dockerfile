@@ -39,24 +39,16 @@ ENV APACHE_VHOST_PORT               443
 # USESSL can be On or Off
 ENV APACHE_VHOST_USESSL             On
 
-ENV NAGIOS_SSLCERT_COUNTRY          US
-ENV NAGIOS_SSLCERT_STATE            mystate
-ENV NAGIOS_SSLCERT_LOCATION         mylocation
-ENV NAGIOS_SSLCERT_ORGANIZATION     myorganization
-ENV NAGIOS_SSLCERT_CNAME            ${APACHE_VHOST_SERVERNAME}
-
-ENV UBUNTU_APTGET_MIRROR            mirror://mirrors.ubuntu.com/mirrors.txt
 ENV DEBIAN_FRONTEND                 noninteractive
 
 USER root
 
-#>> Set system timezone
-RUN echo ${SYSTEM_TIMEZONE} > /etc/timezone &&\
-    dpkg-reconfigure -f noninteractive tzdata
+#>> Add a script to set the timezone on boot.
+#>> KNOB: SYSTEM_TIMEZONE 
+ADD set_timezone.sh /etc/init.d/set_timezone.sh
 
 #>> Install dependency packages.
-RUN sed -i "s|http://archive.ubuntu.com/ubuntu/|${UBUNTU_APTGET_MIRROR}|" /etc/apt/sources.list &&\
-    apt-get update &&\
+RUN apt-get update &&\
     apt-get install -q -y apache2 supervisor libapache2-mod-php5 build-essential libgd2-xpm-dev libssl-dev wget apache2-utils libnet-snmp-perl libpq5 libradius1 libsensors4 libsnmp-base libtalloc2 libtdb1 libwbclient0 samba-common samba-common-bin smbclient snmp whois mrtg libmysqlclient15-dev libcgi-pm-perl librrds-perl libgd-gd2-perl
 
 #>> Add users and such.
@@ -87,7 +79,7 @@ RUN mkdir -p ${WORK_DIR}/nagios4 &&\
 RUN mkdir ${NAGIOS_HOME}/etc/docker
 COPY cfg ${NAGIOS_HOME}/etc/docker/
 RUN echo "cfg_dir=/opt/nagios/etc/docker" >> /opt/nagios/etc/nagios.cfg
-RUN sed -i "s|\(^        email                           \).*|\1$NAGIOS_ADMIN_EMAIL|" ${NAGIOS_HOME}/etc/objects/contacts.cfg
+#####RUN sed -i "s|\(^        email                           \).*|\1$NAGIOS_ADMIN_EMAIL|" ${NAGIOS_HOME}/etc/objects/contacts.cfg
 
 #>> Install Nagios Plugins
 RUN mkdir -p ${WORK_DIR}/nagios-plugins &&\
@@ -123,18 +115,14 @@ RUN sed -i "s|\(^ErrorLog \).*|\1${APACHE_ERROR_LOG}|" /etc/apache2/apache2.conf
     sed -i "s|\(^LogLevel \).*|\1${APACHE_LOG_LEVEL}|" /etc/apache2/apache2.conf
 # Generate a password to use with authentication via Apache. 
 #RUN htpasswd -b -c ${NAGIOS_HOME}/etc/htpasswd.users ${NAGIOSADMIN_USER} ${NAGIOSADMIN_PASS}
+# KNOB: NAGIOSADMIN_USER
+# KNOB: NAGIOSADMIN_PASS
 ADD create_htpasswd.sh /etc/init.d/create_htpasswd.sh 
-RUN chmod +x /etc/init.d/create_htpasswd.sh
-
-RUN chown ${NAGIOS_USER}:${NAGIOS_CMDGROUP} ${NAGIOS_HOME}/etc/htpasswd.users
 # Enable SSL module.
 RUN a2enmod ssl
 # Generate a SSL key for HTTPS access to Nagios web service.
-RUN mkdir -p /etc/apache2/ssl &&\
-    cd /etc/apache2/ssl &&\
-    openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
-        -out nagios.pem -keyout nagios.key \
-        -subj "/C=${NAGIOS_SSLCERT_COUNTRY}/ST=${NAGIOS_SSLCERT_STATE}/L=${NAGIOS_SSLCERT_LOCATION}/O=${NAGIOS_SSLCERT_ORGANIZATION}/CN=${NAGIOS_SSLCERT_CNAME}" 
+ADD nagios.pem /etc/apache2/ssl/nagios.pem
+ADD nagios.key /etc/apache2/ssl/nagios.key
 # Create a place for the Nagios HTTP docs to live.
 RUN mkdir -p ${NAGIOS_WEB_DIR}
 RUN chown www-data:www-data ${NAGIOS_WEB_DIR}
@@ -144,19 +132,12 @@ RUN a2enmod cgi
 RUN a2dissite 000-default
 # Enable the Nagios virtual host we copied over.
 ADD vhost.conf /etc/apache2/sites-available/nagios.conf
-RUN sed -i \
-        "s|%%APACHE_VHOST_SERVERNAME%%|${APACHE_VHOST_SERVERNAME}|" \
-        /etc/apache2/sites-available/nagios.conf &&\
-    sed -i \
-        "s|%%APACHE_VHOST_SERVERADMIN%%|${APACHE_VHOST_SERVERADMIN}|" \
-        /etc/apache2/sites-available/nagios.conf &&\
-    sed -i \
-        "s|%%APACHE_VHOST_PORT%%|${APACHE_VHOST_PORT}|" \
-        /etc/apache2/sites-available/nagios.conf &&\
-    sed -i \
-        "s|%%APACHE_VHOST_USESSL%%|${APACHE_VHOST_USESSL}|" \
-        /etc/apache2/sites-available/nagios.conf
-RUN a2ensite nagios
+# Splice in the environment overrides to the vhost.
+# KNOB: APACHE_VHOST_SERVERNAME
+# KNOB: APACHE_VHOST_SERVERADMIN
+# KNOB: APACHE_VHOST_PORT
+# KNOB: APACHE_VHOST_USESSL
+ADD set_vhost_options.sh /etc/init.d/set_vhost_options.sh
 
 #>> Copy over the supervisord config.
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
