@@ -126,12 +126,10 @@ ADD nagios.key /etc/apache2/ssl/nagios.key
 # Create a place for the Nagios HTTP docs to live.
 RUN mkdir -p ${NAGIOS_WEB_DIR}
 RUN chown www-data:www-data ${NAGIOS_WEB_DIR}
-# Enable CGI module.
 RUN a2enmod cgi
-# Disable default apache site.
 RUN a2dissite 000-default
-# Enable the Nagios virtual host we copied over.
 ADD vhost.conf /etc/apache2/sites-available/nagios.conf
+a2ensite nagios
 # Splice in the environment overrides to the vhost.
 # KNOB: APACHE_VHOST_SERVERNAME
 # KNOB: APACHE_VHOST_SERVERADMIN
