@@ -10,7 +10,7 @@ ENV NAGIOSPLUGINS_VERSION           2.0.3
 ENV NRPE_VERSION                    2.15
 
 ENV WORK_DIR                        /tmp
-ENV SYSTEM_TIMEZONE                 America/New_York
+ENV SYSTEM_TIMEZONE                 UTC
 
 ENV NAGIOS_HOME                     /opt/nagios
 ENV NAGIOS_USER                     nagios
@@ -122,7 +122,10 @@ RUN mkdir -p ${WORK_DIR}/nrpe &&\
 RUN sed -i "s|\(^ErrorLog \).*|\1${APACHE_ERROR_LOG}|" /etc/apache2/apache2.conf &&\
     sed -i "s|\(^LogLevel \).*|\1${APACHE_LOG_LEVEL}|" /etc/apache2/apache2.conf
 # Generate a password to use with authentication via Apache. 
-RUN htpasswd -b -c ${NAGIOS_HOME}/etc/htpasswd.users ${NAGIOSADMIN_USER} ${NAGIOSADMIN_PASS}
+#RUN htpasswd -b -c ${NAGIOS_HOME}/etc/htpasswd.users ${NAGIOSADMIN_USER} ${NAGIOSADMIN_PASS}
+ADD create_htpasswd.sh /etc/init.d/create_htpasswd.sh 
+RUN chmod +x /etc/init.d/create_htpasswd.sh
+
 RUN chown ${NAGIOS_USER}:${NAGIOS_CMDGROUP} ${NAGIOS_HOME}/etc/htpasswd.users
 # Enable SSL module.
 RUN a2enmod ssl
