@@ -45,7 +45,8 @@ USER root
 
 #>> Add a script to set the timezone on boot.
 #>> KNOB: SYSTEM_TIMEZONE 
-ADD set_timezone.sh /etc/init.d/set_timezone.sh
+ADD init.d/set_timezone.sh /etc/init.d/set_timezone.sh
+RUN /etc/init.d/set_timezone.sh
 
 #>> Install dependency packages.
 RUN apt-get update &&\
@@ -77,7 +78,7 @@ RUN mkdir -p ${WORK_DIR}/nagios4 &&\
 # Copy over custom config files (any file ending with .cfg will be picked up,
 # including any nested files with the same pattern.)
 RUN mkdir ${NAGIOS_HOME}/etc/docker
-COPY cfg ${NAGIOS_HOME}/etc/docker/
+COPY nagios_cfgs ${NAGIOS_HOME}/etc/docker/
 RUN echo "cfg_dir=/opt/nagios/etc/docker" >> /opt/nagios/etc/nagios.cfg
 #####RUN sed -i "s|\(^        email                           \).*|\1$NAGIOS_ADMIN_EMAIL|" ${NAGIOS_HOME}/etc/objects/contacts.cfg
 
@@ -114,10 +115,10 @@ RUN mkdir -p ${WORK_DIR}/nrpe &&\
 RUN sed -i "s|\(^ErrorLog \).*|\1${APACHE_ERROR_LOG}|" /etc/apache2/apache2.conf &&\
     sed -i "s|\(^LogLevel \).*|\1${APACHE_LOG_LEVEL}|" /etc/apache2/apache2.conf
 # Generate a password to use with authentication via Apache. 
-#RUN htpasswd -b -c ${NAGIOS_HOME}/etc/htpasswd.users ${NAGIOSADMIN_USER} ${NAGIOSADMIN_PASS}
 # KNOB: NAGIOSADMIN_USER
 # KNOB: NAGIOSADMIN_PASS
-ADD create_htpasswd.sh /etc/init.d/create_htpasswd.sh 
+ADD init.d/create_htpasswd.sh /etc/init.d/create_htpasswd.sh 
+RUN /etc/init.d/create_htpasswd.sh
 # Enable SSL module.
 RUN a2enmod ssl
 # Generate a SSL key for HTTPS access to Nagios web service.
@@ -129,13 +130,14 @@ RUN chown www-data:www-data ${NAGIOS_WEB_DIR}
 RUN a2enmod cgi
 RUN a2dissite 000-default
 ADD vhost.conf /etc/apache2/sites-available/nagios.conf
-a2ensite nagios
 # Splice in the environment overrides to the vhost.
 # KNOB: APACHE_VHOST_SERVERNAME
 # KNOB: APACHE_VHOST_SERVERADMIN
 # KNOB: APACHE_VHOST_PORT
 # KNOB: APACHE_VHOST_USESSL
-ADD set_vhost_options.sh /etc/init.d/set_vhost_options.sh
+ADD init.d/set_vhost_options.sh /etc/init.d/set_vhost_options.sh
+RUN /etc/init.d/set_vhost_options.sh
+RUN a2ensite nagios
 
 #>> Copy over the supervisord config.
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
