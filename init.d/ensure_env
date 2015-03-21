@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Set timezone
+echo ${SYSTEM_TIMEZONE} > /etc/timezone
+dpkg-reconfigure -f noninteractive tzdata
+
+# Create htpasswd
+htpasswd -c -b -s ${NAGIOS_HOME}/etc/htpasswd.users ${NAGIOSADMIN_USER} ${NAGIOSADMIN_PASS}
+chown -R nagios.nagios ${NAGIOS_HOME}/etc/htpasswd.users
+
+# Fixup nagios apache config
 sed -i \
     "s|%%APACHE_VHOST_SERVERNAME%%|${APACHE_VHOST_SERVERNAME}|" \
     /etc/apache2/sites-available/nagios.conf
@@ -12,3 +21,4 @@ sed -i \
 sed -i \
     "s|%%APACHE_VHOST_USESSL%%|${APACHE_VHOST_USESSL}|" \
     /etc/apache2/sites-available/nagios.conf
+a2ensite nagios
