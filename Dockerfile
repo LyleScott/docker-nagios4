@@ -43,11 +43,6 @@ ENV DEBIAN_FRONTEND                 noninteractive
 
 USER root
 
-#>> Add a script to set the timezone on boot.
-#>> KNOB: SYSTEM_TIMEZONE 
-ADD init.d/set_timezone.sh /etc/init.d/set_timezone.sh
-RUN /etc/init.d/set_timezone.sh
-
 #>> Install dependency packages.
 RUN apt-get update &&\
     apt-get install -q -y apache2 supervisor libapache2-mod-php5 build-essential libgd2-xpm-dev libssl-dev wget apache2-utils libnet-snmp-perl libpq5 libradius1 libsensors4 libsnmp-base libtalloc2 libtdb1 libwbclient0 samba-common samba-common-bin smbclient snmp whois mrtg libmysqlclient15-dev libcgi-pm-perl librrds-perl libgd-gd2-perl
@@ -114,11 +109,6 @@ RUN mkdir -p ${WORK_DIR}/nrpe &&\
 #>> Install and Configure Apache
 RUN sed -i "s|\(^ErrorLog \).*|\1${APACHE_ERROR_LOG}|" /etc/apache2/apache2.conf &&\
     sed -i "s|\(^LogLevel \).*|\1${APACHE_LOG_LEVEL}|" /etc/apache2/apache2.conf
-# Generate a password to use with authentication via Apache. 
-# KNOB: NAGIOSADMIN_USER
-# KNOB: NAGIOSADMIN_PASS
-ADD init.d/create_htpasswd.sh /etc/init.d/create_htpasswd.sh 
-RUN /etc/init.d/create_htpasswd.sh
 # Enable SSL module.
 RUN a2enmod ssl
 # Generate a SSL key for HTTPS access to Nagios web service.
@@ -131,12 +121,6 @@ RUN a2enmod cgi
 RUN a2dissite 000-default
 ADD vhost.conf /etc/apache2/sites-available/nagios.conf
 # Splice in the environment overrides to the vhost.
-# KNOB: APACHE_VHOST_SERVERNAME
-# KNOB: APACHE_VHOST_SERVERADMIN
-# KNOB: APACHE_VHOST_PORT
-# KNOB: APACHE_VHOST_USESSL
-ADD init.d/set_vhost_options.sh /etc/init.d/set_vhost_options.sh
-RUN /etc/init.d/set_vhost_options.sh
 RUN a2ensite nagios
 
 #>> Copy over the supervisord config.
@@ -149,4 +133,5 @@ RUN apt-get autoclean -y &&\
 
 EXPOSE 443
 
-CMD ["/usr/bin/supervisord"]
+ADD init.d/ensure_env /etc/init.d/ensure_env
+CMD ["su", "-c", "/etc/init.d/ensure_env ; /usr/bin/supervisord"]
