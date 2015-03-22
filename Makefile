@@ -6,10 +6,10 @@ build:
 	docker build -t lylescott/${APPNAME} .
 
 run:
-	docker run -i -t -p ${HOST_PORT}:${CONTAINER_PORT} lylescott/${APPNAME}
+	docker run -i -t --rm -p ${HOST_PORT}:${CONTAINER_PORT} lylescott/${APPNAME}
 
 shell:
-	docker run -i -t -p ${HOST_PORT}:${CONTAINER_PORT} lylescott/${APPNAME} /bin/bash
+	docker run -i -t --rm -p ${HOST_PORT}:${CONTAINER_PORT} lylescott/${APPNAME} /bin/bash
 
 clean:
 	docker rmi -f lylescott/${APPNAME}
