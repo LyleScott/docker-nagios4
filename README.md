@@ -3,27 +3,6 @@
 This docker image will give you an Ubuntu 14.04 image with Nagios4
 (and apache2) installed.
 
-It allows you to configure how Apache and Nagios are installed using ENV
-variables.
-
-## Overridable Config Options
-
-```bash
-# The Linux system's timezone
-ENV SYSTEM_TIMEZONE                 America/New_York
-
-# The user and pass for the password prompt to access Nagios
-ENV NAGIOSADMIN_USER                nagiosadmin
-ENV NAGIOSADMIN_PASS                nagios
-
-# Nagios (apache) vhost options.
-ENV APACHE_VHOST_SERVERNAME         nagios.example.com
-ENV APACHE_VHOST_SERVERADMIN        lyle@nagios.example.com
-ENV APACHE_VHOST_PORT               443
-# options: On Off
-ENV APACHE_VHOST_USESSL             On
-```
-
 ## Quick Start
 
 ```bash
@@ -36,11 +15,36 @@ Then, visit http://dockerip:9443 (and accept the self-signed cert)
 ### Customize with a Dockerfile
 ```bash
 FROM lylescott/nagios4
-MAINTAINER Your Name <your@email.com>
+MAINTAINER Lyle Scott, III <lyle@digitalfoo.net>
+
+ENV NAGIOS_ADMIN_EMAIL              lyle@digitalfoo.net
+ENV NAGIOS_MAIL_SERVER              gmailrelay
+ENV NAGIOSADMIN_USER                ls3 
+ENV NAGIOSADMIN_PASS                nagios1!
 
 USER root
 
-<customizations here>
+# Set timezone
+echo America/New_York > /etc/timezone
+dpkg-reconfigure -f noninteractive tzdata
+
+# Nagios config
+RUN echo > ${NAGIOS_HOME}/etc/objects/localhost.cfg
+RUN mkdir ${NAGIOS_HOME}/etc/docker
+COPY nagios_cfgs/* ${NAGIOS_HOME}/etc/docker/
+RUN echo "cfg_dir=/opt/nagios/etc/docker" >> /opt/nagios/etc/nagios.cfg
+RUN sed -i "s|\(^        email                           \).*|\1$NAGIOS_ADMIN_EMAIL|" ${NAGIOS_HOME}/etc/objects/contacts.cfg
+RUN sed -i 's|/bin/mail|/usr/bin/mail|' /opt/nagios/etc/nagios.cfg
+RUN htpasswd -c -b -s ${NAGIOS_HOME}/etc/htpasswd.users ${NAGIOSADMIN_USER} ${NAGIOSADMIN_PASS}
+
+# Replace the vhost config with your own
+ADD vhost.conf /etc/apache2/sites-available/nagios.conf
+
+# Postfix config...relay
+RUN sed -i "s/myhostname =.*/myhostname = `hostname`/" /etc/postfix/main.cf &&\
+    sed -i "s/relayhost =.*/relayhost = ${NAGIOS_MAIL_SERVER}/" /etc/postfix/main.cf
+
+RUN /etc/init.d/apache2 restart
 ```
 
 #### Example Nagios cfg File
