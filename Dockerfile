@@ -30,16 +30,7 @@ ENV APACHE_SERVERALIAS              docker.localhost
 ENV APACHE_ERROR_LOG                /dev/stdout
 ENV APACHE_LOG_LEVEL                error 
 
-ENV APACHE_VHOST_SERVERNAME         www.path.to.nagios.com
-ENV APACHE_VHOST_SERVERADMIN        admin@example.com
-ENV APACHE_VHOST_PORT               443
-# USESSL can be On or Off
-ENV APACHE_VHOST_USESSL             On
-
 ENV DEBIAN_FRONTEND                 noninteractive
-
-#ENV MAIL_SERVER                     
-#ENV MAIL_VARIABLE                   
 
 USER root
 
@@ -114,8 +105,9 @@ RUN chown www-data:www-data ${NAGIOS_WEB_DIR}
 RUN a2enmod cgi
 RUN a2dissite 000-default
 ADD vhost.conf /etc/apache2/sites-available/nagios.conf
-# Splice in the environment overrides to the vhost.
 RUN a2ensite nagios
+RUN htpasswd -c -b -s ${NAGIOS_HOME}/etc/htpasswd.users ${NAGIOSADMIN_USER} ${NAGIOSADMIN_PASS} &&\
+    chown -R nagios.nagios ${NAGIOS_HOME}/etc/htpasswd.users
 
 #>> Copy over the supervisord config.
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
@@ -127,5 +119,6 @@ RUN apt-get autoclean -y &&\
 
 EXPOSE 443
 
-ADD ensure_env /etc/init.d/ensure_env
-CMD ["su", "-c", "/etc/init.d/ensure_env ; /usr/bin/supervisord"]
+#ADD ensure_env /etc/init.d/ensure_env
+#CMD ["su", "-c", "/etc/init.d/ensure_env ; /usr/bin/supervisord"]
+CMD ["/usr/bin/supervisord"]
