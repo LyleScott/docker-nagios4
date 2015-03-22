@@ -10,7 +10,6 @@ ENV NAGIOSPLUGINS_VERSION           2.0.3
 ENV NRPE_VERSION                    2.15
 
 ENV WORK_DIR                        /tmp
-ENV SYSTEM_TIMEZONE                 UTC
 
 ENV NAGIOS_HOME                     /opt/nagios
 ENV NAGIOS_USER                     nagios
@@ -18,9 +17,7 @@ ENV NAGIOS_GROUP                    nagios
 ENV NAGIOS_CMDGROUP                 nagioscmd
 ENV NAGIOSADMIN_USER                nagiosadmin
 ENV NAGIOSADMIN_PASS                nagios
-ENV NAGIOS_TIMEZONE                 US/Eastern
 ENV NAGIOS_WEB_DIR                  $NAGIOS_HOME/share
-ENV NAGIOS_ADMIN_EMAIL              admin@example.com
 
 ENV APACHE_RUN_USER                 nagios
 ENV APACHE_RUN_GROUP                nagios
@@ -41,11 +38,14 @@ ENV APACHE_VHOST_USESSL             On
 
 ENV DEBIAN_FRONTEND                 noninteractive
 
+#ENV MAIL_SERVER                     
+#ENV MAIL_VARIABLE                   
+
 USER root
 
 #>> Install dependency packages.
 RUN apt-get update &&\
-    apt-get install -q -y apache2 supervisor libapache2-mod-php5 build-essential libgd2-xpm-dev libssl-dev wget apache2-utils libnet-snmp-perl libpq5 libradius1 libsensors4 libsnmp-base libtalloc2 libtdb1 libwbclient0 samba-common samba-common-bin smbclient snmp whois mrtg libmysqlclient15-dev libcgi-pm-perl librrds-perl libgd-gd2-perl
+    apt-get install -q -y apache2 supervisor postfix libapache2-mod-php5 build-essential libgd2-xpm-dev libssl-dev wget apache2-utils libnet-snmp-perl libpq5 libradius1 libsensors4 libsnmp-base libtalloc2 libtdb1 libwbclient0 samba-common samba-common-bin smbclient snmp whois mrtg libmysqlclient15-dev libcgi-pm-perl librrds-perl libgd-gd2-perl
 
 #>> Add users and such.
 RUN groupadd -g 3000 ${NAGIOS_GROUP}
@@ -70,12 +70,6 @@ RUN mkdir -p ${WORK_DIR}/nagios4 &&\
     make install && make install-config && make install-commandmode &&\
     /usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/conf-available/nagios.conf &&\
     ln -s /etc/apache2/conf-available/nagios.conf /etc/apache2/conf-enabled/nagios.conf
-# Copy over custom config files (any file ending with .cfg will be picked up,
-# including any nested files with the same pattern.)
-RUN mkdir ${NAGIOS_HOME}/etc/docker
-COPY nagios_cfgs ${NAGIOS_HOME}/etc/docker/
-RUN echo "cfg_dir=/opt/nagios/etc/docker" >> /opt/nagios/etc/nagios.cfg
-#####RUN sed -i "s|\(^        email                           \).*|\1$NAGIOS_ADMIN_EMAIL|" ${NAGIOS_HOME}/etc/objects/contacts.cfg
 
 #>> Install Nagios Plugins
 RUN mkdir -p ${WORK_DIR}/nagios-plugins &&\
@@ -133,5 +127,5 @@ RUN apt-get autoclean -y &&\
 
 EXPOSE 443
 
-ADD init.d/ensure_env /etc/init.d/ensure_env
+ADD ensure_env /etc/init.d/ensure_env
 CMD ["su", "-c", "/etc/init.d/ensure_env ; /usr/bin/supervisord"]

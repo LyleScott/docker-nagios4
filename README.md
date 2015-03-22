@@ -40,13 +40,8 @@ MAINTAINER Your Name <your@email.com>
 
 USER root
 
-# Copy over your Nagios4 configs.
-COPY cfg/* ${NAGIOS_HOME}/etc/docker/
+<customizations here>
 ```
-
-The "cfg" directory should contain all your custom Nagios config files. Any
-filename ending in .cfg will be automatically picked up by Nagios. The files
-can be nested in any directory stucture.
 
 #### Example Nagios cfg File
 
